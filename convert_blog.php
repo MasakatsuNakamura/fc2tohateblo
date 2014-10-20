@@ -7,23 +7,32 @@ $no_output = 0;
 while (!feof($in)) {
 
 	$line = rtrim(fgets($in));
-
-	if ($line == "BODY:") {
+	
+	if ($line == "AUTHOR:") {
+		
+		$message = [$line];
+		
+	} elseif ($line == "BODY:") {
 
 		$in_body = true;
-
-	} elseif ($line == "EXTENDED BODY:") {
-
-		$no_output = 3;
 
 	} elseif ($line == "COMMENT:") {
 
 		$in_comment = true;
 
+	} elseif ($in_body && $line == "EXTENDED BODY:") {
+
+		array_pop($message);
+		$no_output = 1;
+		
 	} elseif ($line == "-----") {
 
 		$in_body = false;
 		$in_comment = false;
+
+	} elseif ($line == "--------") {
+
+		echo implode(PHP_EOL, $message);
 
 	}
 
@@ -31,11 +40,13 @@ while (!feof($in)) {
 		$line .= "<br>";
 	}
 
-	if ($no_output > 0) {
-			$no_output--;
-	} else {
+	while ($no_output == 0) {
 		if (!($in_comment && preg_match("/^(SECRET:|PASS:)/", $line))) {
-			echo $line . PHP_EOL;
+			if ($in_comment) {
+				$line = preg_replace("/^TITLE:/", "タイトル:");
+			}
+			array_push($message, $line);
 		}
 	}
+	$no_output--;
 }
